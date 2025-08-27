@@ -1,7 +1,4 @@
-# 备份当前文件
-cp /root/Image-api/server.js /root/Image-api/server.js.backup
-
-# 创建正确的 server.js 文件
+# 直接用正确的内容覆盖 server.js
 cat > /root/Image-api/server.js << 'EOF'
 const express = require('express');
 const path = require('path');
