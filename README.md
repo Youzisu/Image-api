@@ -57,9 +57,9 @@ users.json - 用户数据
 photos.json - 照片数据
 上传的图片文件存储在 uploads/ 目录中。
 
-🔧 配置说明
+### 🔧 配置说明
 编辑 .env 文件进行配置：
-```bash
+
 PORT - 服务端口（默认3000）
 JWT_SECRET - JWT 密钥
 REGISTER_KEY - 注册密钥
