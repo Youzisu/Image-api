@@ -1,0 +1,22 @@
+{
+  "1": {
+    "id": 1,
+    "url": "https://picsum.photos/800/600?random=1",
+    "title": "示例照片 1",
+    "description": "这是一张美丽的示例照片",
+    "tags": ["风景", "自然"],
+    "userId": 1,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "2": {
+    "id": 2,
+    "url": "https://picsum.photos/800/600?random=2",
+    "title": "示例照片 2",
+    "description": "另一张精美的照片",
+    "tags": ["城市", "建筑"],
+    "userId": 1,
+    "createdAt": "2024-01-01T01:00:00.000Z",
+    "updatedAt": "2024-01-01T01:00:00.000Z"
+  }
+}
