@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - Photos API</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 0;
+        }
+        .register-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .register-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+        .password-strength {
+            height: 4px;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        .strength-weak { background-color: #dc3545; }
+        .strength-medium { background-color: #ffc107; }
+        .strength-strong { background-color: #28a745; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card register-card">
+                    <div class="card-header register-header text-center py-4">
+                        <h3>📸 Photos API</h3>
+                        <p class="mb-0">注册新账户</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <form id="registerForm">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">
+                                    <i class="bi bi-person"></i> 用户名
+                                </label>
+                                <input type="text" class="form-control" id="username" required>
+                                <div id="usernameHelp" class="form-text">用户名长度应为 3-20 个字符</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="password" class="form-label">
+                                    <i class="bi bi-lock"></i> 密码
+                                </label>
+                                <input type="password" class="form-control" id="password" required>
+                                <div class="password-strength mt-1" id="passwordStrength"></div>
+                                <div id="passwordHelp" class="form-text">密码长度至少 6 个字符</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="confirmPassword" class="form-label">
+                                    <i class="bi bi-lock-fill"></i> 确认密码
+                                </label>
+                                <input type="password" class="form-control" id="confirmPassword" required>
+                                <div id="confirmPasswordHelp" class="form-text"></div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="role" class="form-label">
+                                    <i class="bi bi-person-badge"></i> 账户类型
+                                </label>
+                                <select class="form-select" id="role" required>
+                                    <option value="user">普通用户</option>
+                                    <option value="admin">管理员</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3" id="registerKeyGroup" style="display: none;">
+                                <label for="registerKey" class="form-label">
+                                    <i class="bi bi-key"></i> 管理员注册密钥
+                                </label>
+                                <input type="password" class="form-control" id="registerKey">
+                                <div class="form-text text-warning">注册管理员账户需要特殊密钥</div>
+                            </div>
+                            
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="agreeTerms" required>
+                                <label class="form-check-label" for="agreeTerms">
+                                    我同意使用条款和隐私政策
+                                </label>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100 mb-3">注册账户</button>
+                        </form>
+                        
+                        <hr>
+                        
+                        <div class="text-center">
+                            <p class="mb-2">已有账户？</p>
+                            <a href="login.html" class="btn btn-outline-secondary w-100">立即登录</a>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <a href="/" class="text-decoration-none">← 返回网站首页</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="toast" class="toast" role="alert">
+            <div class="toast-header">
+                <strong class="me-auto">Photos API</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toastBody"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 角色选择变化时显示/隐藏注册密钥字段
+        document.getElementById('role').addEventListener('change', function(e) {
+            const registerKeyGroup = document.getElementById('registerKeyGroup');
+            if (e.target.value === 'admin') {
+                registerKeyGroup.style.display = 'block';
+                document.getElementById('registerKey').required = true;
+            } else {
+                registerKeyGroup.style.display = 'none';
+                document.getElementById('registerKey').required = false;
+            }
+        });
+
+        // 密码强度检查
+        document.getElementById('password').addEventListener('input', function(e) {
+            const password = e.target.value;
+            const strengthBar = document.getElementById('passwordStrength');
+            const helpText = document.getElementById('passwordHelp');
+            
+            let strength = 0;
+            let strengthText = '';
+            
+            if (password.length >= 6) strength++;
+            if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+            if (password.match(/[0-9]/)) strength++;
+            if (password.match(/[^a-zA-Z0-9]/)) strength++;
+            
+            switch(strength) {
+                case 0:
+                case 1:
+                    strengthBar.className = 'password-strength strength-weak';
+                    strengthBar.style.width = '33%';
+                    strengthText = '密码强度：弱';
+                    break;
+                case 2:
+                    strengthBar.className = 'password-strength strength-medium';
+                    strengthBar.style.width = '66%';
+                    strengthText = '密码强度：中等';
+                    break;
+                case 3:
+                case 4:
+                    strengthBar.className = 'password-strength strength-strong';
+                    strengthBar.style.width = '100%';
+                    strengthText = '密码强度：强';
+                    break;
+            }
+            
+            helpText.textContent = password.length < 6 ? '密码长度至少 6 个字符' : strengthText;
+        });
+
+        // 确认密码验证
+        document.getElementById('confirmPassword').addEventListener('input', function(e) {
+            const password = document.getElementById('password').value;
+            const confirmPassword = e.target.value;
+            const helpText = document.getElementById('confirmPasswordHelp');
+            
+            if (confirmPassword === '') {
+                helpText.textContent = '';
+                helpText.className = 'form-text';
+            } else if (password === confirmPassword) {
+                helpText.textContent = '✓ 密码匹配';
+                helpText.className = 'form-text text-success';
+            } else {
+                helpText.textContent = '✗ 密码不匹配';
+                helpText.className = 'form-text text-danger';
+            }
+        });
+
+        // 表单提交
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const role = document.getElementById('role').value;
+            const registerKey = document.getElementById('registerKey').value;
+            const agreeTerms = document.getElementById('agreeTerms').checked;
+
+            // 基本验证
+            if (username.length < 3 || username.length > 20) {
+                showToast('用户名长度应为 3-20 个字符', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showToast('密码长度至少 6 个字符', 'error');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showToast('两次输入的密码不匹配', 'error');
+                return;
+            }
+
+            if (role === 'admin' && !registerKey) {
+                showToast('注册管理员账户需要提供注册密钥', 'error');
+                return;
+            }
+
+            if (!agreeTerms) {
+                showToast('请同意使用条款和隐私政策', 'error');
+                return;
+            }
+
+            try {
+                const requestBody = {
+                    username,
+                    password,
+                    role
+                };
+
+                if (role === 'admin') {
+                    requestBody.registerKey = registerKey;
+                }
+
+                const response = await fetch('/api/users/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showToast('注册成功！正在跳转到登录页面...', 'success');
+                    
+                    // 延迟跳转到登录页面
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    showToast(result.message || '注册失败', 'error');
+                }
+            } catch (error) {
+                console.error('Register error:', error);
+                showToast('注册失败，请检查网络连接', 'error');
+            }
+        });
+
+        // 显示 Toast 通知
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastBody = document.getElementById('toastBody');
+            
+            toastBody.textContent = message;
+            
+            // 移除之前的样式类
+            toast.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-warning', 'text-bg-info');
+            
+            // 添加对应的样式类
+            switch(type) {
+                case 'success':
+                    toast.classList.add('text-bg-success');
+                    break;
+                case 'error':
+                    toast.classList.add('text-bg-danger');
+                    break;
+                case 'warning':
+                    toast.classList.add('text-bg-warning');
+                    break;
+                default:
+                    toast.classList.add('text-bg-info');
+            }
+            
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+        }
+    </script>
+</body>
+</html>
