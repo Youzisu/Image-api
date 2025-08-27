@@ -26,23 +26,23 @@ npm run dev  # 开发模式
 # 或
 npm start    # 生产模式
 
-## 📋 API 文档
-# 用户相关
+📋 API 文档
+用户相关
 POST /api/users/register - 用户注册
 POST /api/users/login - 用户登录
 GET /api/users/profile - 获取用户信息
-# 照片相关
+照片相关
 GET /api/photos - 获取照片列表
 GET /api/photos/random - 获取随机照片
 POST /api/photos - 创建照片
 PUT /api/photos/:id - 更新照片
 DELETE /api/photos/:id - 删除照片
-# Web 页面
+Web 页面
 GET / - 首页
 GET /random - 随机照片页面
 GET /admin/dashboard.html - 管理后台
 GET /admin/login.html - 登录页面
-## 🎯 项目特性
+🎯 项目特性
 ✅ 零数据库依赖
 ✅ JWT 身份认证
 ✅ 文件上传支持
@@ -57,7 +57,7 @@ users.json - 用户数据
 photos.json - 照片数据
 上传的图片文件存储在 uploads/ 目录中。
 
-### 🔧 配置说明
+🔧 配置说明
 编辑 .env 文件进行配置：
 
 PORT - 服务端口（默认3000）
