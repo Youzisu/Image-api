@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photos API - 管理后台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+        .photo-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .tag {
+            background-color: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin: 2px;
+        }
+        .loading {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <h5 class="px-3 mb-3">📸 Photos API</h5>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" onclick="showSection('dashboard')">
+                                <i class="bi bi-house"></i> 仪表板
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('photos')">
+                                <i class="bi bi-images"></i> 照片管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('upload')">
+                                <i class="bi bi-cloud-upload"></i> 上传照片
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('users')">
+                                <i class="bi bi-people"></i> 用户管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showSection('settings')">
+                                <i class="bi bi-gear"></i> 设置
+                            </a>
+                        </li>
+                    </ul>
+                    <hr>
+                    <div class="px-3">
+                        <p class="text-muted mb-1">当前用户</p>
+                        <p id="currentUser" class="fw-bold">未登录</p>
+                        <button class="btn btn-sm btn-outline-danger" onclick="logout()">退出登录</button>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- 主内容区 -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <!-- 顶部导航 -->
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2" id="pageTitle">仪表板</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <a href="/" class="btn btn-sm btn-outline-secondary">查看网站</a>
+                            <a href="/random" class="btn btn-sm btn-outline-secondary">随机照片</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 登录表单 -->
+                <div id="loginSection" class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>🔑 管理员登录</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="loginForm">
+                                    <div class="mb-3">
+                                        <label for="username" class="form-label">用户名</label>
+                                        <input type="text" class="form-control" id="username" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="password" class="form-label">密码</label>
+                                        <input type="password" class="form-control" id="password" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100">登录</button>
+                                </form>
+                                <hr>
+                                <p class="text-muted">默认管理员账户: admin / password</p>
+                                <a href="register.html" class="btn btn-outline-secondary w-100">注册新账户</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 仪表板 -->
+                <div id="dashboardSection" class="section" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-3 mb-4">
+                            <div class="card text-white bg-primary">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h5 class="card-title">总照片数</h5>
+                                            <h2 id="totalPhotos">-</h2>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="bi bi-images fs-1"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card text-white bg-success">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h5 class="card-title">总用户数</h5>
+                                            <h2 id="totalUsers">-</h2>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="bi bi-people fs-1"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card text-white bg-info">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h5 class="card-title">标签数量</h5>
+                                            <h2 id="totalTags">-</h2>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="bi bi-tags fs-1"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card text-white bg-warning">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h5 class="card-title">活跃用户</h5>
+                                            <h2 id="activeUsers">-</h2>
+                                        </div>
+                                        <div class="align-self-center">
+                                            <i class="bi bi-person-check fs-1"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>📸 最新照片</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="recentPhotos">加载中...</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>🏷️ 热门标签</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="popularTags">加载中...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 照片管理 -->
+                <div id="photosSection" class="section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <input type="text" class="form-control" id="photoSearch" placeholder="搜索照片...">
+                        </div>
+                        <div>
+                            <button class="btn btn-primary" onclick="showSection('upload')">+ 添加照片</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>缩略图</th>
+                                    <th>标题</th>
+                                    <th>描述</th>
+                                    <th>标签</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="photosTable">
+                                <tr>
+                                    <td colspan="6" class="text-center">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <nav>
+                        <ul class="pagination justify-content-center" id="photosPagination"></ul>
+                    </nav>
+                </div>
+
+                <!-- 上传照片 -->
+                <div id="uploadSection" class="section" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>📤 上传新照片</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="uploadForm" enctype="multipart/form-data">
+                                        <div class="mb-3">
+                                            <label for="photoFile" class="form-label">选择照片文件</label>
+                                            <input type="file" class="form-control" id="photoFile" accept="image/*">
+                                            <div class="form-text">支持格式: JPG, PNG, GIF, WebP，最大 5MB</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="photoUrl" class="form-label">或输入照片URL</label>
+                                            <input type="url" class="form-control" id="photoUrl" placeholder="https://example.com/photo.jpg">
+                                            <div class="form-text">如果同时选择了文件和URL，将优先使用文件上传</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="photoTitle" class="form-label">照片标题</label>
+                                            <input type="text" class="form-control" id="photoTitle" placeholder="输入照片标题">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="photoDescription" class="form-label">照片描述</label>
+                                            <textarea class="form-control" id="photoDescription" rows="3" placeholder="输入照片描述"></textarea>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="photoTags" class="form-label">标签</label>
+                                            <input type="text" class="form-control" id="photoTags" placeholder="输入标签，用逗号分隔">
+                                            <div class="form-text">例如: 风景,自然,户外</div>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">上传照片</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 用户管理 -->
+                <div id="usersSection" class="section" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>用户名</th>
+                                    <th>角色</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>最后登录</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTable">
+                                <tr>
+                                    <td colspan="7" class="text-center">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 设置 -->
+                <div id="settingsSection" class="section" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>⚙️ 系统设置</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">API Base URL</label>
+                                        <input type="text" class="form-control" value="/api" readonly>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">存储方式</label>
+                                        <input type="text" class="form-control" value="本地JSON文件" readonly>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">最大文件大小</label>
+                                        <input type="text" class="form-control" value="5MB" readonly>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">支持格式</label>
+                                        <input type="text" class="form-control" value="JPG, PNG, GIF, WebP" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>📋 快速链接</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <a href="/api/photos" class="btn btn-outline-primary" target="_blank">照片 API</a>
+                                        <a href="/api/photos/random" class="btn btn-outline-success" target="_blank">随机照片 API</a>
+                                        <a href="/api/health" class="btn btn-outline-info" target="_blank">健康检查</a>
+                                        <a href="/" class="btn btn-outline-secondary" target="_blank">前台网站</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="toast" class="toast" role="alert">
+            <div class="toast-header">
+                <strong class="me-auto">Photos API</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toastBody"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 全局变量
+        let currentToken = localStorage.getItem('authToken');
+        let currentUser = null;
+
+        // 页面加载时检查登录状态
+        document.addEventListener('DOMContentLoaded', function() {
+            if (currentToken) {
+                checkAuthStatus();
+            } else {
+                showLoginForm();
+            }
+        });
+
+        // 显示登录表单
+        function showLoginForm() {
+            document.getElementById('loginSection').style.display = 'block';
+            document.querySelectorAll('.section').forEach(section => {
+                section.style.display = 'none';
+            });
+        }
+
+        // 隐藏登录表单
+        function hideLoginForm() {
+            document.getElementById('loginSection').style.display = 'none';
+        }
+
+        // 检查认证状态
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/users/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    currentUser = result.data;
+                    document.getElementById('currentUser').textContent = currentUser.username;
+                    hideLoginForm();
+                    showSection('dashboard');
+                } else {
+                    localStorage.removeItem('authToken');
+                    currentToken = null;
+                    showLoginForm();
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                showLoginForm();
+            }
+        }
+
+        // 登录表单提交
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/users/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    currentToken = result.data.token;
+                    currentUser = result.data.user;
+                    localStorage.setItem('authToken', currentToken);
+                    
+                    document.getElementById('currentUser').textContent = currentUser.username;
+                    hideLoginForm();
+                    showSection('dashboard');
+                    showToast('登录成功', 'success');
+                } else {
+                    showToast(result.message || '登录失败', 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showToast('登录失败，请检查网络连接', 'error');
+            }
+        });
+
+        // 退出登录
+        function logout() {
+            localStorage.removeItem('authToken');
+            currentToken = null;
+            currentUser = null;
+            showLoginForm();
+            showToast('已退出登录', 'info');
+        }
+
+        // 显示指定区域
+        function showSection(sectionName) {
+            // 更新导航状态
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 隐藏所有区域
+            document.querySelectorAll('.section').forEach(section => {
+                section.style.display = 'none';
+            });
+
+            // 显示指定区域
+            document.getElementById(sectionName + 'Section').style.display = 'block';
+
+            // 更新页面标题
+            const titles = {
+                dashboard: '仪表板',
+                photos: '照片管理',
+                upload: '上传照片',
+                users: '用户管理',
+                settings: '设置'
+            };
+            document.getElementById('pageTitle').textContent = titles[sectionName] || sectionName;
+
+            // 加载对应数据
+            switch(sectionName) {
+                case 'dashboard':
+                    loadDashboardData();
+                    break;
+                case 'photos':
+                    loadPhotos();
+                    break;
+                case 'users':
+                    loadUsers();
+                    break;
+            }
+        }
+
+        // 加载仪表板数据
+        async function loadDashboardData() {
+            try {
+                // 加载照片统计
+                const photoStatsResponse = await fetch('/api/photos/stats');
+                if (photoStatsResponse.ok) {
+                    const photoStats = await photoStatsResponse.json();
+                    document.getElementById('totalPhotos').textContent = photoStats.data.total;
+                    document.getElementById('totalTags').textContent = photoStats.data.totalTags;
+                    
+                    // 显示最新照片
+                    const recentPhotosHtml = photoStats.data.recentPhotos.map(photo => `
+                        <div class="d-flex align-items-center mb-2">
+                            <img src="${photo.url}" class="photo-thumbnail me-2" alt="${photo.title}">
+                            <div>
+                                <div class="fw-bold">${photo.title || '无标题'}</div>
+                                <small class="text-muted">${new Date(photo.createdAt).toLocaleDateString('zh-CN')}</small>
+                            </div>
+                        </div>
+                    `).join('');
+                    document.getElementById('recentPhotos').innerHTML = recentPhotosHtml || '暂无照片';
+                    
+                    // 显示热门标签
+                    const popularTagsHtml = photoStats.data.popularTags.map(tag => `
+                        <span class="tag">#${tag.tag} (${tag.count})</span>
+                    `).join('');
+                    document.getElementById('popularTags').innerHTML = popularTagsHtml || '暂无标签';
+                }
+
+                // 加载用户统计
+                if (currentUser && currentUser.role === 'admin') {
+                    const userStatsResponse = await fetch('/api/users/stats', {
+                        headers: {
+                            'Authorization': `Bearer ${currentToken}`
+                        }
+                    });
+                    if (userStatsResponse.ok) {
+                        const userStats = await userStatsResponse.json();
+                        document.getElementById('totalUsers').textContent = userStats.data.total;
+                        document.getElementById('activeUsers').textContent = userStats.data.active;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load dashboard data:', error);
+            }
+        }
+
+        // 加载照片列表
+        async function loadPhotos(page = 1) {
+            try {
+                const response = await fetch(`/api/photos?page=${page}&limit=10`);
+                const result = await response.json();
+
+                if (response.ok) {
+                    const photosHtml = result.data.map(photo => `
+                        <tr>
+                            <td><img src="${photo.url}" class="photo-thumbnail" alt="${photo.title}"></td>
+                            <td>${photo.title || '无标题'}</td>
+                            <td>${photo.description ? (photo.description.length > 50 ? photo.description.substring(0, 50) + '...' : photo.description) : '无描述'}</td>
+                            <td>
+                                ${photo.tags ? photo.tags.map(tag => `<span class="tag">#${tag}</span>`).join('') : '无标签'}
+                            </td>
+                            <td>${new Date(photo.createdAt).toLocaleDateString('zh-CN')}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="editPhoto(${photo.id})">编辑</button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deletePhoto(${photo.id})">删除</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                    
+                    document.getElementById('photosTable').innerHTML = photosHtml || '<tr><td colspan="6" class="text-center">暂无照片</td></tr>';
+                    
+                    // 生成分页
+                    generatePagination('photosPagination', result.pagination, loadPhotos);
+                } else {
+                    document.getElementById('photosTable').innerHTML = '<tr><td colspan="6" class="text-center text-danger">加载失败</td></tr>';
+                }
+            } catch (error) {
+                console.error('Failed to load photos:', error);
+                document.getElementById('photosTable').innerHTML = '<tr><td colspan="6" class="text-center text-danger">加载失败</td></tr>';
+            }
+        }
+
+        // 加载用户列表
+        async function loadUsers(page = 1) {
+            if (!currentUser || currentUser.role !== 'admin') {
+                document.getElementById('usersTable').innerHTML = '<tr><td colspan="7" class="text-center text-warning">需要管理员权限</td></tr>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/users?page=${page}&limit=10`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    const usersHtml = result.data.map(user => `
+                        <tr>
+                            <td>${user.id}</td>
+                            <td>${user.username}</td>
+                            <td><span class="badge bg-${user.role === 'admin' ? 'danger' : 'primary'}">${user.role}</span></td>
+                            <td><span class="badge bg-${user.isActive ? 'success' : 'secondary'}">${user.isActive ? '活跃' : '禁用'}</span></td>
+                            <td>${new Date(user.createdAt).toLocaleDateString('zh-CN')}</td>
+                            <td>${user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('zh-CN') : '从未登录'}</td>
+                            <td>
+                                ${user.id !== currentUser.id ? `
+                                    <button class="btn btn-sm btn-outline-warning" onclick="toggleUserStatus(${user.id})">
+                                        ${user.isActive ? '禁用' : '启用'}
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})">删除</button>
+                                ` : '<span class="text-muted">当前用户</span>'}
+                            </td>
+                        </tr>
+                    `).join('');
+                    
+                    document.getElementById('usersTable').innerHTML = usersHtml || '<tr><td colspan="7" class="text-center">暂无用户</td></tr>';
+                } else {
+                    document.getElementById('usersTable').innerHTML = '<tr><td colspan="7" class="text-center text-danger">加载失败</td></tr>';
+                }
+            } catch (error) {
+                console.error('Failed to load users:', error);
+                document.getElementById('usersTable').innerHTML = '<tr><td colspan="7" class="text-center text-danger">加载失败</td></tr>';
+            }
+        }
+
+        // 上传照片表单提交
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const photoFile = document.getElementById('photoFile').files[0];
+            const photoUrl = document.getElementById('photoUrl').value;
+            const photoTitle = document.getElementById('photoTitle').value;
+            const photoDescription = document.getElementById('photoDescription').value;
+            const photoTags = document.getElementById('photoTags').value;
+
+            if (!photoFile && !photoUrl) {
+                showToast('请选择文件或输入URL', 'error');
+                return;
+            }
+
+            try {
+                let response;
+                
+                if (photoFile) {
+                    // 文件上传
+                    const formData = new FormData();
+                    formData.append('photo', photoFile);
+                    formData.append('title', photoTitle);
+                    formData.append('description', photoDescription);
+                    formData.append('tags', photoTags);
+
+                    response = await fetch('/api/photos/upload', {
+                        method: 'POST',
+                        headers: currentToken ? {
+                            'Authorization': `Bearer ${currentToken}`
+                        } : {},
+                        body: formData
+                    });
+                } else {
+                    // URL 方式
+                    response = await fetch('/api/photos', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(currentToken ? { 'Authorization': `Bearer ${currentToken}` } : {})
+                        },
+                        body: JSON.stringify({
+                            url: photoUrl,
+                            title: photoTitle,
+                            description: photoDescription,
+                            tags: photoTags
+                        })
+                    });
+                }
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showToast('照片上传成功', 'success');
+                    document.getElementById('uploadForm').reset();
+                    if (document.getElementById('photosSection').style.display !== 'none') {
+                        loadPhotos();
+                    }
+                } else {
+                    showToast(result.message || '上传失败', 'error');
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                showToast('上传失败，请检查网络连接', 'error');
+            }
+        });
+
+        // 删除照片
+        async function deletePhoto(photoId) {
+            if (!confirm('确定要删除这张照片吗？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/photos/${photoId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showToast('删除成功', 'success');
+                    loadPhotos();
+                } else {
+                    showToast(result.message || '删除失败', 'error');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                showToast('删除失败', 'error');
+            }
+        }
+
+        // 切换用户状态
+        async function toggleUserStatus(userId) {
+            try {
+                const response = await fetch(`/api/users/${userId}/toggle-status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showToast('用户状态更新成功', 'success');
+                    loadUsers();
+                } else {
+                    showToast(result.message || '操作失败', 'error');
+                }
+            } catch (error) {
+                console.error('Toggle user status error:', error);
+                showToast('操作失败', 'error');
+            }
+        }
+
+        // 删除用户
+        async function deleteUser(userId) {
+            if (!confirm('确定要删除这个用户吗？此操作不可恢复！')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showToast('用户删除成功', 'success');
+                    loadUsers();
+                } else {
+                    showToast(result.message || '删除失败', 'error');
+                }
+            } catch (error) {
+                console.error('Delete user error:', error);
+                showToast('删除失败', 'error');
+            }
+        }
+
+        // 生成分页导航
+        function generatePagination(containerId, pagination, loadFunction) {
+            if (!pagination || pagination.totalPages <= 1) {
+                document.getElementById(containerId).innerHTML = '';
+                return;
+            }
+
+            let paginationHtml = '';
+            
+            if (pagination.hasPrevPage) {
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="${loadFunction.name}(${pagination.currentPage - 1})">上一页</a></li>`;
+            }
+
+            for (let i = Math.max(1, pagination.currentPage - 2); i <= Math.min(pagination.totalPages, pagination.currentPage + 2); i++) {
+                paginationHtml += `<li class="page-item ${i === pagination.currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="${loadFunction.name}(${i})">${i}</a>
+                </li>`;
+            }
+
+            if (pagination.hasNextPage) {
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="${loadFunction.name}(${pagination.currentPage + 1})">下一页</a></li>`;
+            }
+
+            document.getElementById(containerId).innerHTML = paginationHtml;
+        }
+
+        // 显示 Toast 通知
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastBody = document.getElementById('toastBody');
+            
+            toastBody.textContent = message;
+            
+            // 移除之前的样式类
+            toast.classList.remove('text-bg-success', 'text-bg-danger', 'text-bg-warning', 'text-bg-info');
+            
+            // 添加对应的样式类
+            switch(type) {
+                case 'success':
+                    toast.classList.add('text-bg-success');
+                    break;
+                case 'error':
+                    toast.classList.add('text-bg-danger');
+                    break;
+                case 'warning':
+                    toast.classList.add('text-bg-warning');
+                    break;
+                default:
+                    toast.classList.add('text-bg-info');
+            }
+            
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+        }
+
+        // 照片搜索
+        document.getElementById('photoSearch').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.trim();
+            if (searchTerm) {
+                searchPhotos(searchTerm);
+            } else {
+                loadPhotos();
+            }
+        });
+
+        // 搜索照片
+        async function searchPhotos(searchTerm) {
+            try {
+                const response = await fetch(`/api/photos/search?q=${encodeURIComponent(searchTerm)}`);
+                const result = await response.json();
+
+                if (response.ok) {
+                    const photosHtml = result.data.map(photo => `
+                        <tr>
+                            <td><img src="${photo.url}" class="photo-thumbnail" alt="${photo.title}"></td>
+                            <td>${photo.title || '无标题'}</td>
+                            <td>${photo.description ? (photo.description.length > 50 ? photo.description.substring(0, 50) + '...' : photo.description) : '无描述'}</td>
+                            <td>
+                                ${photo.tags ? photo.tags.map(tag => `<span class="tag">#${tag}</span>`).join('') : '无标签'}
+                            </td>
+                            <td>${new Date(photo.createdAt).toLocaleDateString('zh-CN')}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="editPhoto(${photo.id})">编辑</button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deletePhoto(${photo.id})">删除</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                    
+                    document.getElementById('photosTable').innerHTML = photosHtml || '<tr><td colspan="6" class="text-center">未找到相关照片</td></tr>';
+                }
+            } catch (error) {
+                console.error('Search photos error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
