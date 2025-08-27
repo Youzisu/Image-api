@@ -1,4 +1,3 @@
-cat > /root/Image-api/src/app.js << 'EOF'
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -223,4 +222,3 @@ app.use((err, req, res, next) => {
 });
 
 module.exports = app;
-EOF
