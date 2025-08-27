@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .photo-card {
+            transition: transform 0.2s;
+            height: 100%;
+        }
+        .photo-card:hover {
+            transform: translateY(-5px);
+        }
+        .photo-img {
+            height: 250px;
+            object-fit: cover;
+        }
+        .tag {
+            background-color: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin: 2px;
+            text-decoration: none;
+            color: #495057;
+        }
+        .tag:hover {
+            background-color: #dee2e6;
+            color: #495057;
+        }
+        .search-box {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">📸 Photos Gallery</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">首页</a>
+                <a class="nav-link" href="/random">随机照片</a>
+                <a class="nav-link active" href="/list">照片列表</a>
+                <a class="nav-link" href="/admin/dashboard.html">管理后台</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- 搜索和过滤区域 -->
+        <div class="search-box">
+            <div class="row">
+                <div class="col-md-6">
+                    <label for="searchInput" class="form-label">🔍 搜索照片</label>
+                    <input type="text" class="form-control" id="searchInput" placeholder="输入关键词搜索照片..." value="<%= filters.search || '' %>">
+                </div>
+                <div class="col-md-4">
+                    <label for="tagsInput" class="form-label">🏷️ 标签过滤</label>
+                    <input type="text" class="form-control" id="tagsInput" placeholder="输入标签，用逗号分隔" value="<%= filters.tags || '' %>">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" onclick="applyFilters()">应用过滤</button>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-12">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="clearFilters()">清除过滤</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>📋 照片列表</h1>
+                    <% if (pagination) { %>
+                        <span class="text-muted">共 <%= pagination.totalItems %> 张照片</span>
+                    <% } %>
+                </div>
+                
+                <% if (locals.error) { %>
+                    <div class="alert alert-danger">
+                        <%= error %>
+                    </div>
+                <% } %>
+
+                <% if (photos && photos.length > 0) { %>
+                    <div class="row">
+                        <% photos.forEach(photo => { %>
+                            <div class="col-md-6 col-lg-4 col-xl-3 mb-4">
+                                <div class="card photo-card h-100">
+                                    <img src="<%= photo.url %>" class="card-img-top photo-img" alt="<%= photo.title || 'Photo' %>" loading="lazy">
+                                    <div class="card-body d-flex flex-column">
+                                        <h6 class="card-title"><%= photo.title || '无标题' %></h6>
+                                        <p class="card-text flex-grow-1">
+                                            <%= photo.description ? (photo.description.length > 120 ? photo.description.substring(0, 120) + '...' : photo.description) : '暂无描述' %>
+                                        </p>
+                                        <% if (photo.tags && photo.tags.length > 0) { %>
+                                            <div class="mb-2">
+                                                <% photo.tags.forEach(tag => { %>
+                                                    <a href="/list?tags=<%= encodeURIComponent(tag) %>" class="tag">#<%= tag %></a>
+                                                <% }) %>
+                                            </div>
+                                        <% } %>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                ID: <%= photo.id %>
+                                            </small>
+                                            <small class="text-muted">
+                                                <%= new Date(photo.createdAt).toLocaleDateString('zh-CN') %>
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+
+                    <!-- 分页 -->
+                    <% if (pagination && pagination.totalPages > 1) { %>
+                        <nav aria-label="照片分页">
+                            <ul class="pagination justify-content-center">
+                                <% if (pagination.hasPrevPage) { %>
+                                    <li class="page-item">
+                                        <a class="page-link" href="<%= buildPageUrl(pagination.currentPage - 1, filters) %>">上一页</a>
+                                    </li>
+                                <% } %>
+                                
+                                <% 
+                                const startPage = Math.max(1, pagination.currentPage - 2);
+                                const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+                                for (let i = startPage; i <= endPage; i++) { 
+                                %>
+                                    <li class="page-item <%= i === pagination.currentPage ? 'active' : '' %>">
+                                        <a class="page-link" href="<%= buildPageUrl(i, filters) %>"><%= i %></a>
+                                    </li>
+                                <% } %>
+                                
+                                <% if (pagination.hasNextPage) { %>
+                                    <li class="page-item">
+                                        <a class="page-link" href="<%= buildPageUrl(pagination.currentPage + 1, filters) %>">下一页</a>
+                                    </li>
+                                <% } %>
+                            </ul>
+                        </nav>
+
+                        <div class="text-center text-muted">
+                            第 <%= pagination.currentPage %> 页，共 <%= pagination.totalPages %> 页 | 
+                            显示 <%= ((pagination.currentPage - 1) * pagination.itemsPerPage + 1) %> - 
+                            <%= Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems) %> 条，
+                            共 <%= pagination.totalItems %> 条记录
+                        </div>
+                    <% } %>
+                <% } else { %>
+                    <div class="text-center py-5">
+                        <h3 class="text-muted">😔 没有找到照片</h3>
+                        <% if (filters.search || filters.tags) { %>
+                            <p class="text-muted">尝试调整搜索条件或标签过滤</p>
+                            <button class="btn btn-outline-primary" onclick="clearFilters()">清除所有过滤条件</button>
+                        <% } else { %>
+                            <p class="text-muted">还没有上传任何照片，快去添加一些吧！</p>
+                            <a href="/admin/dashboard.html" class="btn btn-primary">前往管理后台</a>
+                        <% } %>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-light text-center py-3 mt-5">
+        <div class="container">
+            <p>&copy; 2024 Photos API. 发现更多精彩照片！</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 应用过滤器
+        function applyFilters() {
+            const search = document.getElementById('searchInput').value.trim();
+            const tags = document.getElementById('tagsInput').value.trim();
+            
+            const params = new URLSearchParams();
+            if (search) params.set('search', search);
+            if (tags) params.set('tags', tags);
+            
+            const url = '/list' + (params.toString() ? '?' + params.toString() : '');
+            window.location.href = url;
+        }
+
+        // 清除过滤器
+        function clearFilters() {
+            window.location.href = '/list';
+        }
+
+        // 回车键触发搜索
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                applyFilters();
+            }
+        });
+
+        document.getElementById('tagsInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                applyFilters();
+            }
+        });
+
+        // 构建分页URL的辅助函数（在服务端渲染时使用）
+        <% 
+        function buildPageUrl(page, filters) {
+            const params = new URLSearchParams();
+            params.set('page', page);
+            if (filters.search) params.set('search', filters.search);
+            if (filters.tags) params.set('tags', filters.tags);
+            return '/list?' + params.toString();
+        }
+        %>
+    </script>
+</body>
+</html>
