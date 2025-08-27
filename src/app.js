@@ -1,15 +1,10 @@
-# 确保目录存在
-mkdir -p /root/Image-api/src
-
-# 创建基础的 app.js
 cat > /root/Image-api/src/app.js << 'EOF'
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
+const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
 
-// 创建 Express 应用
 const app = express();
 
 // 中间件配置
@@ -25,12 +20,11 @@ app.use('/public', express.static(path.join(__dirname, '../public')));
 const dataDir = path.join(__dirname, '../data');
 const uploadsDir = path.join(__dirname, '../uploads');
 
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-}
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-}
+[dataDir, uploadsDir].forEach(dir => {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+});
 
 // 初始化数据文件
 const initDataFiles = () => {
@@ -50,6 +44,7 @@ const initDataFiles = () => {
             }
         };
         fs.writeFileSync(usersFile, JSON.stringify(defaultUsers, null, 2));
+        console.log('✅ 创建默认用户文件 (admin/password)');
     }
 
     if (!fs.existsSync(photosFile)) {
@@ -76,13 +71,14 @@ const initDataFiles = () => {
             }
         };
         fs.writeFileSync(photosFile, JSON.stringify(defaultPhotos, null, 2));
+        console.log('✅ 创建默认照片文件');
     }
 };
 
-// 初始化数据文件
+// 初始化数据
 initDataFiles();
 
-// 基础路由
+// 路由
 app.get('/', (req, res) => {
     res.json({
         success: true,
@@ -100,22 +96,22 @@ app.get('/', (req, res) => {
 app.get('/api/health', (req, res) => {
     res.json({
         success: true,
-        message: 'Photos API is running',
+        message: 'Photos API is healthy',
         timestamp: new Date().toISOString(),
         version: '1.0.0'
     });
 });
 
-// 照片相关接口
+// 获取照片列表
 app.get('/api/photos', (req, res) => {
     try {
-        const photosPath = path.join(__dirname, '../data/photos.json');
+        const photosPath = path.join(dataDir, 'photos.json');
         
         if (fs.existsSync(photosPath)) {
             const photosData = JSON.parse(fs.readFileSync(photosPath, 'utf8'));
             const photos = Object.values(photosData);
             
-            // 简单分页
+            // 分页
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
             const startIndex = (page - 1) * limit;
@@ -130,7 +126,9 @@ app.get('/api/photos', (req, res) => {
                     currentPage: page,
                     totalPages: Math.ceil(photos.length / limit),
                     totalItems: photos.length,
-                    itemsPerPage: limit
+                    itemsPerPage: limit,
+                    hasNextPage: endIndex < photos.length,
+                    hasPrevPage: page > 1
                 },
                 timestamp: new Date().toISOString()
             });
@@ -143,7 +141,9 @@ app.get('/api/photos', (req, res) => {
                     currentPage: 1,
                     totalPages: 0,
                     totalItems: 0,
-                    itemsPerPage: 10
+                    itemsPerPage: 10,
+                    hasNextPage: false,
+                    hasPrevPage: false
                 },
                 timestamp: new Date().toISOString()
             });
@@ -158,10 +158,10 @@ app.get('/api/photos', (req, res) => {
     }
 });
 
-// 随机照片接口
+// 获取随机照片
 app.get('/api/photos/random', (req, res) => {
     try {
-        const photosPath = path.join(__dirname, '../data/photos.json');
+        const photosPath = path.join(dataDir, 'photos.json');
         
         if (fs.existsSync(photosPath)) {
             const photosData = JSON.parse(fs.readFileSync(photosPath, 'utf8'));
@@ -211,7 +211,7 @@ app.use((req, res) => {
     });
 });
 
-// 错误处理中间件
+// 错误处理
 app.use((err, req, res, next) => {
     console.error('Error:', err);
     res.status(500).json({
